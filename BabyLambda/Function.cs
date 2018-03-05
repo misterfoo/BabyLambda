@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Mail;
 using System.Threading.Tasks;
@@ -23,22 +24,39 @@ namespace BabyLambda
 		/// <returns></returns>
 		public string FunctionHandler(JObject input, ILambdaContext context)
 		{
-			var birthday = new DateTimeOffset(2018, 2, 4, 14, 4, 0, TimeSpan.FromHours(-5));
-			var now = DateTimeOffset.Now;
-			var delta = now - birthday;
+			var birthdayExact = new DateTimeOffset(2018, 2, 4, 14, 4, 0, TimeSpan.FromHours(-5));
+			var birthdayRound = new DateTimeOffset(2018, 2, 4, 0, 0, 0, TimeSpan.FromHours(-5));
+			var nowExact = DateTimeOffset.Now;
+			var nowRound = new DateTimeOffset(nowExact.Year, nowExact.Month, nowExact.Day, 0, 0, 0, nowExact.Offset);
+			var deltaExact = nowExact - birthdayExact;
+			var deltaRound = nowRound - birthdayRound;
 
+			// How many months old? This is going by calendar dates, so Feb 4 -> March 4 is one month,
+			// and Feb 4 -> April 4 is two months. Since months are not all the same length, it's not
+			// so easy to calculate.
+			int months = (nowRound.Year - birthdayRound.Year) * 12
+						+ (nowRound.Month - birthdayRound.Month);
+			if (nowRound.Day < birthdayRound.Day)
+				months -= 1;
+
+			// Create the full version.
 			var sb = new System.Text.StringBuilder();
-			sb.Append("<html><body><div align='center'>");
+			sb.Append("<html><div align='center' style='background-color: #cccccc'>");
+			sb.Append("<br/>");
 			sb.Append("Arthur Elliott Robinson-Nevill's age is currently:");
 			sb.Append("<br/>");
 			sb.Append("<br/>");
-			sb.AppendFormat("{0} seconds", (int)delta.TotalSeconds); sb.Append("<br/>");
-			sb.AppendFormat("{0} hours", (int)delta.TotalHours); sb.Append("<br/>");
-			sb.AppendFormat("{0} days", (int)delta.TotalDays); sb.Append("<br/>");
-			sb.AppendFormat("{0:0.0} fortnights", delta.TotalDays / 14); sb.Append("<br/>");
-			sb.AppendFormat("{0} months", (int)(delta.TotalDays / 30)); sb.Append("<br/>");
+			sb.AppendFormat("{0} seconds", (int)deltaExact.TotalSeconds); sb.Append("<br/>");
+			sb.AppendFormat("{0} hours", (int)deltaExact.TotalHours); sb.Append("<br/>");
+			sb.AppendFormat("{0} earth days", (int)deltaRound.TotalDays); sb.Append("<br/>");
+			sb.AppendFormat("{0} martian days", (int)(deltaRound.TotalMinutes / 1477)); sb.Append("<br/>");
+			sb.AppendFormat("{0} weeks", (int)(deltaRound.TotalDays / 7)); sb.Append("<br/>");
+			sb.AppendFormat("{0:0.0} fortnights", deltaRound.TotalDays / 14); sb.Append("<br/>");
+			sb.AppendFormat("{0:0.0} lunar months (synodic)", deltaRound.TotalDays / 29.53); sb.Append("<br/>");
+			sb.AppendFormat("{0:0} earth months", months); sb.Append("<br/>");
+			sb.AppendFormat("{0:0.00} years", deltaRound.TotalDays / 365); sb.Append("<br/>");
 			sb.Append("<br/>");
-			sb.Append("</div></body></html>");
+			sb.Append("</div></html>");
 
 			SendEmail("Arthur date check!", sb.ToString());
 			context.Logger.LogLine("yep, it ran");
