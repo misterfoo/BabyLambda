@@ -24,10 +24,12 @@ namespace BabyLambda
 		/// <returns></returns>
 		public string FunctionHandler(JObject input, ILambdaContext context)
 		{
+			// Time zone tomfoolery here is to deal with the fact that the server time zone is unknown; as long as
+			// we use proper offset-qualified values everywhere, it works out correctly.
 			var birthdayExact = new DateTimeOffset(2018, 2, 4, 14, 4, 0, TimeSpan.FromHours(-5));
-			var birthdayRound = new DateTimeOffset(2018, 2, 4, 0, 0, 0, TimeSpan.FromHours(-5));
-			var nowExact = DateTimeOffset.Now;
-			var nowRound = new DateTimeOffset(nowExact.Year, nowExact.Month, nowExact.Day, 0, 0, 0, nowExact.Offset);
+			var birthdayRound = new DateTimeOffset(2018, 2, 4, 0, 0, 0, TimeSpan.Zero);
+			var nowExact = DateTimeOffset.UtcNow;
+			var nowRound = new DateTimeOffset(nowExact.Year, nowExact.Month, nowExact.Day, 0, 0, 0, TimeSpan.Zero);
 			var deltaExact = nowExact - birthdayExact;
 			var deltaRound = nowRound - birthdayRound;
 
@@ -56,6 +58,7 @@ namespace BabyLambda
 			sb.AppendFormat("{0:0} earth months", months); sb.Append("<br/>");
 			sb.AppendFormat("{0:0.00} years", deltaRound.TotalDays / 365); sb.Append("<br/>");
 			sb.Append("<br/>");
+			sb.AppendFormat("Server time: {0:o}", nowExact); sb.Append("<br/>");
 			sb.Append("</div></html>");
 
 			SendEmail("Arthur date check!", sb.ToString());
